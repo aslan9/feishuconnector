@@ -25,12 +25,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: Implementation',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries'
     ],
-    install_requires=[
-        'requests >= 2.22.0'
-    ],
+    install_requires=open('requirements.txt').readlines(),
 )
