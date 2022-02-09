@@ -23,8 +23,14 @@ code usage::
 
     fc = FeishuConnector()
     fc.init("user***", "pass***)
-    # 获取全部记录
+    # 获取多维表格全部记录
     records = fc.get_bitable_records('wikcnlBvPJ8xoTSfVtQwGBkrUWc', 'tblGZPQYMzrwRMeo')
 
-    # 插入全部记录
+    # 在多维表格中插入记录
     fc.insert_bitable_records('wikcnlBvPJ8xoTSfVtQwGBkrUWc', 'tblGZPQYMzrwRMeo', records)
+
+    # 获取普通表格某range的全部数据，values is a list(rows) of list(cols)
+    values = fc.get_sheet_data("wikcnQgBgZCWUx7w6ZpzzLXX3bc", "e792af")
+    
+    # 在普通表格中追加数据
+    fc.append_sheet_data("wikcnQgBgZCWUx7w6ZpzzLXX3bc", "e792af", values)
