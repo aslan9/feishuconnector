@@ -75,6 +75,7 @@ class FeishuConnector:
             end = min(sz, row_inserted + 5000)
             rs = values[row_inserted: end]
             self._append_sheet_data(app_token, sheet_id, rs)
+            row_inserted = end
             try_num += 1
         self.log(f'data to {node_token} table {sheet_id} with {try_num} requests. RowNum={row_inserted}, RecordNum={sz}')
         return row_inserted
@@ -157,7 +158,7 @@ class FeishuConnector:
         sz = len(values)
         self.log(f'sheet data fetched. (sheet_range){sheet_range} (rows){sz}')
         return values
-        
+
     # ---- bitable ----
     def get_bitable_detail(self, app_token):
         headers = {'Authorization': f'Bearer {self.token}'}
