@@ -28,5 +28,5 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries'
     ],
-    install_requires=open('requirements.txt').readlines(),
+    #install_requires=open('requirements.txt').readlines(),
 )
