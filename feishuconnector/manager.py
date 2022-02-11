@@ -1,16 +1,6 @@
 import requests
 import json
-import datetime
-
-class DateEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj,datetime.datetime):
-            return obj.strftime("%Y-%m-%d %H:%M:%S")
-        elif isinstance(obj,datetime.date):
-            return obj.strftime("%Y-%m-%d")
-        else:
-            return json.JSONEncoder.default(self,obj)
-        
+from .encoder import JsonEncoder
 class FeishuConnector:
     
     def __init__(self):
@@ -138,7 +128,7 @@ class FeishuConnector:
                 'values': values
             }
         }
-        dt = json.dumps(d, cls=DateEncoder)
+        dt = json.dumps(d, cls=JsonEncoder)
         req = requests.post(f'https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values_append', data=dt, headers=headers)
         res = json.loads(req.text)
         assert res.get('code') == 0, f'fail to _append_sheet_data={req.text}'
