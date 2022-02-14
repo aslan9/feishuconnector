@@ -18,7 +18,25 @@ class FeishuConnector:
 
     # important functions
     def get_bitable_records(self, node_token, table_id):
-        app_token = self.get_app_token(node_token)
+        d = self.get_node_detail(node_token)
+        app_token = d['obj_token']
+        obj_type = d['obj_type']
+        if obj_type == 'sheet':
+            # app token should be refactored
+            sheet_meta = self.get_sheet_meta(app_token)
+            for sht_info in sheet_meta['sheets']:
+                if 'blockInfo' in sht_info:
+                    token = sht_info['blockInfo']['blockToken']
+                    _app, _table = token.split('_')
+                    if _table == table_id:
+                        app_token = _app
+                        break
+            self.log(f'[bitable] get from sheet: (node){node_token} (bi){app_token} (table){table_id}')
+        elif obj_type == 'bitable':
+            # just do nothing
+            self.log(f'[bitable] get from sheet: (node){node_token} (bi){app_token} (table){table_id}')
+        else:
+            assert False, f'fail to get a correct node detail {d}'
         has_more = True
         total_num = None
         page_token = None
@@ -36,14 +54,37 @@ class FeishuConnector:
         return records
     
     def insert_bitable_records(self, node_token, table_id, records):
-        app_token = self.get_app_token(node_token)
+        # to depreciated...
+        self.log('insert_bitable_records will be replaced by append_bitable_records')
+        return self.append_bitable_records(node_token, table_id, records)
+        
+    def append_bitable_records(self, node_token, table_id, records):
+        d = self.get_node_detail(node_token)
+        app_token = d['obj_token']
+        obj_type = d['obj_type']
+        if obj_type == 'sheet':
+            # app token should be refactored
+            sheet_meta = self.get_sheet_meta(app_token)
+            for sht_info in sheet_meta['sheets']:
+                if 'blockInfo' in sht_info:
+                    token = sht_info['blockInfo']['blockToken']
+                    _app, _table = token.split('_')
+                    if _table == table_id:
+                        app_token = _app
+                        break
+            self.log(f'[bitable] get from sheet: (node){node_token} (bi){app_token} (table){table_id}')
+        elif obj_type == 'bitable':
+            # just do nothing
+            self.log(f'[bitable] get from sheet: (node){node_token} (bi){app_token} (table){table_id}')
+        else:
+            assert False, f'fail to get a correct node detail {d}'
         num_inserted = 0
         try_num = 0
         item_num = len(records)
         while num_inserted < item_num:
             end = min(item_num, num_inserted + 100)
             rs = records[num_inserted: end]
-            self._insert_bitable_record(app_token, table_id, rs)
+            self._append_bitable_record(app_token, table_id, rs)
             num_inserted = end
             try_num += 1
         self.log(f'records to {node_token} table {table_id} with {try_num} requests. ItemNum={num_inserted}, RecordNum={item_num}')
@@ -187,7 +228,7 @@ class FeishuConnector:
         self.log(f'bitable records fetched. (table_id){table_id} (num){sz} (page_t){page_token} (total){total_num}')
         return data
 
-    def _insert_bitable_record(self, app_token, table_id, records):
+    def _append_bitable_record(self, app_token, table_id, records):
         headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json; charset=utf-8'
@@ -199,6 +240,6 @@ class FeishuConnector:
         r = requests.post(f'https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/batch_create', data=dt, headers=headers)
         d = json.loads(r.text)
         sz = len(records)
-        assert d.get('code') == 0, f'fail to _insert_bitable_record={r.text}'
+        assert d.get('code') == 0, f'fail to _append_bitable_record={r.text}'
         self.log(f'bitable records inserted. (table_id){table_id} (num){sz}')
         return d['data']['records']
