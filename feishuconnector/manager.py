@@ -1,12 +1,24 @@
+
 import requests
 import json
+import tempfile
 from .encoder import JsonEncoder
+from typing import BinaryIO, Dict
+
+import pandas as pd
+import dataframe_image as dfi
+from requests_toolbelt import MultipartEncoder
+
+
 class FeishuConnector:
-    
-    def __init__(self):
+
+    def __init__(self, webhooks: Dict[str, str]):
         self.app_id = None
         self.app_secret = None
         self.token = None
+        self._webhooks = webhooks
+        assert self._webhooks is not None, 'you should put a webhook config here'
+        assert 'default' in self._webhooks, 'you should put a test webhook here with key \"default\"'
 
     def init(self, app_id: str, app_secret: str) -> None:
         self.app_id = app_id
@@ -52,12 +64,12 @@ class FeishuConnector:
         item_num = len(records)
         self.log(f'records from {node_token} table {table_id} with {try_num} requests. ApiTotal={total_num}, RecordNum={item_num}')
         return records
-    
+
     def insert_bitable_records(self, node_token, table_id, records):
         # to depreciated...
         self.log('insert_bitable_records will be replaced by append_bitable_records')
         return self.append_bitable_records(node_token, table_id, records)
-        
+
     def append_bitable_records(self, node_token, table_id, records):
         d = self.get_node_detail(node_token)
         app_token = d['obj_token']
@@ -89,14 +101,14 @@ class FeishuConnector:
             try_num += 1
         self.log(f'records to {node_token} table {table_id} with {try_num} requests. ItemNum={num_inserted}, RecordNum={item_num}')
         return num_inserted
-    
+
     def get_sheet_data(self, node_token, sheet_id):
         app_token = self.get_app_token(node_token)
         values = self._get_sheet_data(app_token, sheet_id)
         sz = len(values)
         self.log(f'data from {node_token} sheet {sheet_id} with {sz} rows')
         return values
-    
+
     def append_sheet_data(self, node_token, sheet_id, values):
         app_token = self.get_app_token(node_token)
         sz = len(values)
@@ -110,7 +122,7 @@ class FeishuConnector:
             try_num += 1
         self.log(f'data to {node_token} table {sheet_id} with {try_num} requests. RowNum={row_inserted}, RecordNum={sz}')
         return row_inserted
-    
+
     # utility funcs
     def get_tenant_access_token(self):
         payload = {'app_id': self.app_id, 'app_secret': self.app_secret}
@@ -127,7 +139,7 @@ class FeishuConnector:
         d = json.loads(r.text)
         assert d.get('code') == 0, f'fail to get_wiki_spaces={r.text}'
         return d['data']['items']
-    
+
     def get_nodes(self, space_id):
         headers = {'Authorization': f'Bearer {self.token}'}
         r = requests.get(f'https://open.feishu.cn/open-apis/wiki/v2/spaces/{space_id}/nodes', params={}, headers=headers)
@@ -135,7 +147,7 @@ class FeishuConnector:
         assert d.get('code') == 0, f'fail to get_nodes={r.text}'
         nodes = d['data']['items']
         return nodes
-    
+
     def get_node_detail(self, node_token):
         headers = {'Authorization': f'Bearer {self.token}'}
         r = requests.get(f'https://open.feishu.cn/open-apis/wiki/v2/spaces/get_node', params={'token': node_token}, headers=headers)
@@ -148,8 +160,7 @@ class FeishuConnector:
         detail = self.get_node_detail(node_token)
         app_token = detail['obj_token']
         return app_token
-    
-    
+
     # sheet funcs
     def get_sheet_meta(self, sheet_token):
         headers = {'Authorization': f'Bearer {self.token}'}
@@ -157,7 +168,7 @@ class FeishuConnector:
         d = json.loads(r.text)
         assert d.get('code') == 0, f'fail to get_sheet_meta={r.text}'
         return d['data']
-    
+
     def _append_sheet_data(self, sheet_token, sheet_range, values):
         headers = {
             'Authorization': f'Bearer {self.token}',
@@ -177,9 +188,9 @@ class FeishuConnector:
         row_num = res['data']['updates']['updatedRows']
         self.log(f'_append_sheet_data, res={req.text}')
         self.log(f'sheet data appended. (sheet_range){sheet_range} (cells){cell_num} (rows){row_num}')
-        #assert d.get('code') == 0, f'fail to get_sheet_meta={r.text}'
+        # assert d.get('code') == 0, f'fail to get_sheet_meta={r.text}'
         return res
-    
+
     def _get_sheet_data(self, sheet_token, sheet_range):
         headers = {'Authorization': f'Bearer {self.token}'}
         r = requests.get(f'https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values/{sheet_range}', params={}, headers=headers)
@@ -236,10 +247,111 @@ class FeishuConnector:
         ds = []
         for r in records:
             ds.append({'fields': r})
-        dt = json.dumps({'records':ds})
+        dt = json.dumps({'records': ds})
         r = requests.post(f'https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/batch_create', data=dt, headers=headers)
         d = json.loads(r.text)
         sz = len(records)
         assert d.get('code') == 0, f'fail to _append_bitable_record={r.text}'
         self.log(f'bitable records inserted. (table_id){table_id} (num){sz}')
         return d['data']['records']
+
+    def upload_images(self, image_binary: BinaryIO) -> str:
+        import json
+
+        form = {'image_type': 'message',
+                'image': (image_binary)}
+        multi_form = MultipartEncoder(form)
+        self.log(f'(multi_form){multi_form}')
+        headers = {
+            'Authorization': f'Bearer {self.token}',
+        }
+        headers['Content-Type'] = multi_form.content_type
+        rsp = requests.post('https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=multi_form)
+        self.log(rsp.headers['X-Tt-Logid'])  # for debug or oncall
+        d = json.loads(rsp.text)
+        assert d.get('code') == 0, f'fail to upload image rsp={rsp.text}'
+        image_key = d['data']['image_key']
+        self.log(f'access token fetched: {image_key}')
+        return image_key
+
+    def send_image(self, fp, title, target=None):
+        image_key = self.upload_images(fp)
+        elements = [{
+            "tag": "img",
+            "title": {
+                "tag": "plain_text",
+                "content": title,
+            },
+            "img_key": image_key,
+            "mode": "fit_horizontal",
+            "alt": {
+                "tag": "plain_text",
+                "content": "",
+            },
+            "compact_width": True,
+        }]
+        self.send_webhook_msg(target=target, title=title, elements=elements)
+
+    def send_dataframe(self, df: pd.DataFrame, title: str, target=None):
+        try:
+            with tempfile.TemporaryFile() as fp:
+                dfi.export(df, fp, table_conversion='matplotlib')
+                fp.seek(0)
+                self.send_image(fp, title, target)
+        except Exception as e:
+            self.log(e)
+
+    def send_webhook_msg(self, target=None, title=None, content=None, success=True, buttons=None, elements=None):
+        '''
+        buttons = [(content, url), (content, url)]
+        '''
+        msg = {
+                "msg_type": "interactive",
+                "card": {
+                    "config": {
+                        "wide_screen_mode": True
+                    },
+                    "elements": [{
+                        "tag": "div",
+                        "text":  {
+                            "content": content or '',
+                            "tag": "lark_md"
+                        }
+                    }] if elements is None else elements,
+                    "header": {
+                        "template": "green" if success else "red",
+                        "title": {
+                            "content": title or '',
+                            "tag": "plain_text"
+                        }
+                    }
+                }
+            }
+        if buttons:
+            actions = []
+            for (_c, _u) in buttons:
+                actions.append({
+                    "tag": "button",
+                    "text": {
+                        "content": _c,
+                        "tag": "plain_text"
+                    },
+                    "type": "primary",
+                    "url": _u
+                })
+            msg['card']['elements'].append({
+                "actions": actions,
+                "tag": "action"
+            })
+        try:
+            url = self._webhooks[target] if target is not None else self._webhooks['default']
+        except KeyError:
+            url = ''
+        if url:
+            rsp = requests.post(
+                url=url, json=msg, headers={
+                    "Content-Type": "application/json"
+                })
+            self.log(rsp.text)
+        else:
+            self.log('cannot find proper webhook')
