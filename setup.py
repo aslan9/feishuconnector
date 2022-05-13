@@ -28,5 +28,11 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries'
     ],
-    #install_requires=open('requirements.txt').readlines(),
+    install_requires=[
+        'requests >= 2.26.0',
+        'numpy >= 1.21.2',
+        'pandas >= 1.3.3',
+        'requests-toolbelt >= 0.9.1',
+        'dataframe-image-cn >= 0.1.1',
+    ],
 )
