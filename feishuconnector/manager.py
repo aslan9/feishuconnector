@@ -6,7 +6,7 @@ from .encoder import JsonEncoder
 from typing import BinaryIO, Dict
 
 import pandas as pd
-import dataframe_image_cn as dfi
+import dataframe_image as dfi
 from requests_toolbelt import MultipartEncoder
 
 
