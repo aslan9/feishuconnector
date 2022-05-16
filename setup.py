@@ -2,12 +2,15 @@
 # coding=utf-8
 
 from setuptools import setup, find_packages
-from feishuconnector import __version__
 
+with open('feishuconnector/_version.py', 'r') as f:
+    for line in f:
+        if line.startswith('__version__'):
+            version = line.split("'")[1]
 
 setup(
     name='feishuconnector',
-    version=__version__,
+    version=version,
     description=(
         'connect feishu content franchise'
     ),
