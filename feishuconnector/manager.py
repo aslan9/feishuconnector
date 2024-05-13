@@ -1,4 +1,5 @@
 
+import uuid
 import requests
 import json
 import tempfile
@@ -9,6 +10,11 @@ import pandas as pd
 import dataframe_image as dfi
 from requests_toolbelt import MultipartEncoder
 
+
+def create_unique_record_id(prefix='rec'):
+    """Generate a unique record id for Feishu Bitable randomly."""
+    
+    return prefix + uuid.uuid4().hex[:10]
 
 class FeishuConnector:
 
@@ -101,6 +107,13 @@ class FeishuConnector:
             try_num += 1
         self.log(f'records to {node_token} table {table_id} with {try_num} requests. ItemNum={num_inserted}, RecordNum={item_num}')
         return num_inserted
+    
+    def append_bitable_df(self, node_token, table_id, df: pd.DataFrame):
+        d = self.get_node_detail(node_token)
+        app_token = d['obj_token']
+        self.log(f'[bitable] get from sheet: (node){node_token} (bi){app_token} (table){table_id}')
+        self._append_bitable_df(app_token, table_id, df)
+        self.log(f'data to {node_token} table {table_id} with 1 request. RecordNum={len(df)}')
 
     def get_sheet_data(self, node_token, sheet_id):
         app_token = self.get_app_token(node_token)
@@ -252,6 +265,35 @@ class FeishuConnector:
         d = json.loads(r.text)
         sz = len(records)
         assert d.get('code') == 0, f'fail to _append_bitable_record={r.text}'
+        self.log(f'bitable records inserted. (table_id){table_id} (num){sz}')
+        return d['data']['records']
+    
+    def _append_bitable_df(self, app_token, table_id, df: pd.DataFrame):
+        
+        headers = {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        
+        # Convert timestamp data to int
+        timestamp_columns = df.select_dtypes(include='datetime').columns
+        for col in timestamp_columns:
+            df[col] = (df[col].astype(int) / 10**6).astype(int)
+        self.log(f'Timestamp columns: {timestamp_columns.tolist()}, converted to int')
+        
+        # Convert dataframe to format required by Feishu API
+        records = []
+        for _, row in df.iterrows():
+            records.append({
+                'record_id': create_unique_record_id(),
+                'fields': row.to_dict(),
+            })
+            
+        dt = json.dumps({'records': records}, indent=4)
+        r = requests.post(f'https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/batch_create', data=dt, headers=headers)
+        d = json.loads(r.text)
+        sz = len(records)
+        assert d.get('code') == 0, f'fail to _append_bitable_df={r.text}'
         self.log(f'bitable records inserted. (table_id){table_id} (num){sz}')
         return d['data']['records']
 
