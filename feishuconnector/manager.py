@@ -61,12 +61,14 @@ class FeishuConnector:
         records = []
         try_num = 0
         while has_more:
+            if (page_token is None) and (try_num > 0):
+                raise Exception('page_token is None while has more records to fetch.')
             d = self._get_bitable_records(app_token, table_id, page_token=page_token)
             try_num += 1
             has_more = d['has_more']
             records.extend(d['items'])
             total_num = d['total']
-            page_token = d['page_token']
+            page_token = d.get('page_token', None)
         item_num = len(records)
         self.log(f'records from {node_token} table {table_id} with {try_num} requests. ApiTotal={total_num}, RecordNum={item_num}')
         return records
@@ -248,7 +250,7 @@ class FeishuConnector:
         data = d['data']
         sz = len(data['items'])
         total_num = data['total']
-        page_token = data['page_token']
+        page_token = data.get('page_token', None)
         self.log(f'bitable records fetched. (table_id){table_id} (num){sz} (page_t){page_token} (total){total_num}')
         return data
 
