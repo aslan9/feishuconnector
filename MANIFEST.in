@@ -1,0 +1,6 @@
+# Include the pydest directory and its contents
+graft feishuconnector
+
+# Exclude all other files
+exclude *
+
