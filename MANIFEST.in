@@ -1,6 +1,11 @@
 # Include the pydest directory and its contents
 graft feishuconnector
+include README.rst
+include LICENSE
+include setup.py
 
 # Exclude all other files
-exclude *
-
+# # # # # # # # # exclude *
+exclude upload.sh
+exclude .gitignore
+exclude test/*
