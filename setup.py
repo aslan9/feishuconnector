@@ -14,7 +14,7 @@ setup(
     description=(
         'connect feishu content franchise'
     ),
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     author='Changhao Jiang',
     author_email='jch@puyuan.tech',
     url='http://www.puyuan.tech',
