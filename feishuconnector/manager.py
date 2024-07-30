@@ -415,32 +415,31 @@ class FeishuConnector:
         # print('filtered_records:',filtered_records)
         return filtered_records
 
-    def update_bitable_record(self, node_token, table_id, filter_conditions, update_field, new_value):
+    def update_bitable_record(self, node_token, table_id, filter_conditions, update_fields):
         """
         更新飞书多维表格中符合条件的记录的指定字段。
 
         :param node_token: 飞书多维表格的节点令牌
         :param table_id: 飞书多维表格的ID
         :param filter_conditions: 筛选条件，字典格式，字段名作为键，期望值作为值
-        :param update_field: 要更新的字段名
-        :param new_value: 新的字段值
+        :param update_fields: 字典格式：{‘更新的字段名1’：‘新的字段值1’，‘更新的字段名2’：‘新的字段值2’}
         """
         # 获取节点详情以确定使用的app_token
         d = self.get_node_detail(node_token)
         app_token = d['obj_token']
         # 获取符合条件的记录
         records = self.get_filtered_records(node_token, table_id, filter_conditions)
-        updated_num=0
+        updated_num = 0
         for record in records:
             # 构建更新后的记录
             updated_record = {
                 'record_id': record['record_id'],  # 需要指定记录ID
                 'fields': {
                     **record['fields'],  # 保留原有字段
-                    update_field: new_value  # 更新指定字段
+                    **update_fields  # 更新指定字段
                 }
             }
-            updated_count =0
+            updated_count = 0
             # 调用API更新记录
             headers = {
                 'Authorization': f'Bearer {self.token}',
