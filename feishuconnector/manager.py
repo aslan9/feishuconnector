@@ -427,7 +427,7 @@ class FeishuConnector:
         :param update_field: 要更新的字段名
         :param new_value: 新的字段值
         """
-        return self.update_bitable_records(node_token, table_id, filter_conditions, {f'{update_field}': f'{new_value}'})
+        return self.update_bitable_records(node_token, table_id, filter_conditions, {update_field: new_value})
 
     def update_bitable_records(self, node_token, table_id, filter_conditions, update_fields):
         """
