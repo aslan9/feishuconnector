@@ -248,8 +248,12 @@ class FeishuConnector:
         d = json.loads(r.text)
         assert d.get('code') == 0, f'fail to get_bitable_records={r.text}'
         data = d['data']
-        sz = len(data['items'])
         total_num = data['total']
+        # total为0时data中没有item字段
+        if total_num == 0:
+            sz = 0
+        else:
+            sz = len(data['items'])
         page_token = data.get('page_token', None)
         self.log(f'bitable records fetched. (table_id){table_id} (num){sz} (page_t){page_token} (total){total_num}')
         return data
