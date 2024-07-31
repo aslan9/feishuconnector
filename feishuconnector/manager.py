@@ -415,9 +415,18 @@ class FeishuConnector:
         # print('filtered_records:',filtered_records)
         return filtered_records
 
-    def update_bitable_record(self, node_token, table_id, filter_conditions, update_fields):
+    def update_bitable_record(self, node_token, table_id, filter_conditions, update_field, new_value):
         """
-        更新飞书多维表格中符合条件的记录的指定字段。
+        更新飞书多维表格中符合条件的记录的指定字段(更新某一字段)。
+
+        :param update_field: 要更新的字段名
+        :param new_value: 新的字段值
+        """
+        return self.update_bitable_records(node_token, table_id, filter_conditions, {f'{update_field}': f'{new_value}'})
+
+    def update_bitable_records(self, node_token, table_id, filter_conditions, update_fields):
+        """
+        更新飞书多维表格中符合条件的记录的指定字段（更新多字段）。
 
         :param node_token: 飞书多维表格的节点令牌
         :param table_id: 飞书多维表格的ID
