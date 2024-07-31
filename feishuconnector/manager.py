@@ -66,8 +66,9 @@ class FeishuConnector:
             d = self._get_bitable_records(app_token, table_id, page_token=page_token)
             try_num += 1
             has_more = d['has_more']
-            records.extend(d['items'])
             total_num = d['total']
+            if total_num != 0:
+                records.extend(d['items'])
             page_token = d.get('page_token', None)
         item_num = len(records)
         self.log(f'records from {node_token} table {table_id} with {try_num} requests. ApiTotal={total_num}, RecordNum={item_num}')
