@@ -66,8 +66,9 @@ class FeishuConnector:
             d = self._get_bitable_records(app_token, table_id, page_token=page_token)
             try_num += 1
             has_more = d['has_more']
-            records.extend(d['items'])
             total_num = d['total']
+            if total_num != 0:
+                records.extend(d['items'])
             page_token = d.get('page_token', None)
         item_num = len(records)
         self.log(f'records from {node_token} table {table_id} with {try_num} requests. ApiTotal={total_num}, RecordNum={item_num}')
@@ -248,8 +249,12 @@ class FeishuConnector:
         d = json.loads(r.text)
         assert d.get('code') == 0, f'fail to get_bitable_records={r.text}'
         data = d['data']
-        sz = len(data['items'])
         total_num = data['total']
+        # total为0时data中没有item字段
+        if total_num == 0:
+            sz = 0
+        else:
+            sz = len(data['items'])
         page_token = data.get('page_token', None)
         self.log(f'bitable records fetched. (table_id){table_id} (num){sz} (page_t){page_token} (total){total_num}')
         return data
@@ -417,30 +422,38 @@ class FeishuConnector:
 
     def update_bitable_record(self, node_token, table_id, filter_conditions, update_field, new_value):
         """
-        更新飞书多维表格中符合条件的记录的指定字段。
+        更新飞书多维表格中符合条件的记录的指定字段(更新某一字段)。
+
+        :param update_field: 要更新的字段名
+        :param new_value: 新的字段值
+        """
+        return self.update_bitable_records(node_token, table_id, filter_conditions, {update_field: new_value})
+
+    def update_bitable_records(self, node_token, table_id, filter_conditions, update_fields):
+        """
+        更新飞书多维表格中符合条件的记录的指定字段（更新多字段）。
 
         :param node_token: 飞书多维表格的节点令牌
         :param table_id: 飞书多维表格的ID
         :param filter_conditions: 筛选条件，字典格式，字段名作为键，期望值作为值
-        :param update_field: 要更新的字段名
-        :param new_value: 新的字段值
+        :param update_fields: 字典格式：{‘更新的字段名1’：‘新的字段值1’，‘更新的字段名2’：‘新的字段值2’}
         """
         # 获取节点详情以确定使用的app_token
         d = self.get_node_detail(node_token)
         app_token = d['obj_token']
         # 获取符合条件的记录
         records = self.get_filtered_records(node_token, table_id, filter_conditions)
-        updated_num=0
+        updated_num = 0
         for record in records:
             # 构建更新后的记录
             updated_record = {
                 'record_id': record['record_id'],  # 需要指定记录ID
                 'fields': {
                     **record['fields'],  # 保留原有字段
-                    update_field: new_value  # 更新指定字段
+                    **update_fields  # 更新指定字段
                 }
             }
-            updated_count =0
+            updated_count = 0
             # 调用API更新记录
             headers = {
                 'Authorization': f'Bearer {self.token}',
