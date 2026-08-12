@@ -1,3 +1,5 @@
+
+
 # Feishu Document Connector
 
 ## Installation
@@ -11,8 +13,8 @@ pip install feishuconnector
 ```python
 from feishuconnector import FeishuConnector
 
-fc = FeishuConnector()
-fc.init("user***", "pass***")
+fc = FeishuConnector({"default": "webhook_url"})
+fc.init("app_id", "app_secret")
 ```
 
 ## Actual Usage Process
